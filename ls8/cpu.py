@@ -5,6 +5,7 @@ import sys
 HLT = 0b00000001
 LDI = 0b10000010
 PRN = 0b01000111
+MUL = 0b10100010
 
 class CPU:
     """Main CPU class."""
@@ -23,20 +24,23 @@ class CPU:
 
     def load(self):
         """Load a program into memory."""
-
+        
         filename = sys.argv[1]
-        print(filename)
-        with open(filename) as f:
-            for address, line in enumerate(f):
 
-                line = line.split('#')
+        address = 0
+
+        with open(filename) as f:
+            for line in f:
+                line = line.split("#")
 
                 try:
                     v = int(line[0], 2)
                 except ValueError:
                     continue
 
-                self.ram[address] = v 
+                self.ram[address] = v
+
+                address += 1 
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
@@ -90,6 +94,11 @@ class CPU:
             elif ir == HLT:
                 running = False
                 self.pc += 1
+            elif ir == MUL:
+                reg_num1 = operand_a
+                reg_num2 = operand_b
+                self.register[reg_num1] *= self.register[reg_num2]
+                self.pc += 3
             else:
                 print(f'Unknown instruction {ir} at address {self.pc}')
                 sys.exit(1)

@@ -1,0 +1,35 @@
+Inventory of the Repo
+--------------------
+
+/ls8/
+	/examples/
+		- contains examples of programs e.g. print8
+
+	/README.md
+	---------
+	- a breakdown of all the steps for all 4 days
+	- steps 1-6 relate to day1
+
+	/cpu.py
+	------
+	- contains the CPU class
+	     * initializes a new CPU
+	     * laods a program into memory
+		 * the print8 program is hard-coded array
+	     * debugging function
+	     * a fn that runs the CPU
+
+	/ls8.py*********
+	------
+	- implementation
+
+
+FAQ.md
+LS8-cheatsheet.md
+	- a list hex codes for varying operations
+LS8-spec.md
+	- lists the specification for the registers, flags, memory, operators, 
+README.md******
+	- breaks down task by day 1-4
+	
+
