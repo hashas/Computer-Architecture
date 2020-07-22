@@ -24,25 +24,19 @@ class CPU:
     def load(self):
         """Load a program into memory."""
 
-        address = 0 # to index into the RAM array
+        filename = sys.argv[1]
+        print(filename)
+        with open(filename) as f:
+            for address, line in enumerate(f):
 
-        # For now, we've just hardcoded a program:
+                line = line.split('#')
 
-        program = [
-            # From print8.ls8
-            0b10000010, # LDI R0,8  register[0] = 8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0    print(register[0])
-            0b00000000,
-            0b00000001, # HLT
-        ]
+                try:
+                    v = int(line[0], 2)
+                except ValueError:
+                    continue
 
-        # this adds each instruction in the program to RAM
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
-
+                self.ram[address] = v 
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
@@ -97,5 +91,5 @@ class CPU:
                 running = False
                 self.pc += 1
             else:
-                print(f'Unknown instruction {ir} at address {pc}')
+                print(f'Unknown instruction {ir} at address {self.pc}')
                 sys.exit(1)
