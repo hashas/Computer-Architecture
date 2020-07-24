@@ -14,6 +14,7 @@ class CPU:
         """Construct a new CPU."""
         self.ram = [0] * 256
         self.register = [0] * 8 # R0, R1, R2, R3... R7
+        self.SP = 7
         self.pc = 0
         self.running = True
         # Branch Table
@@ -21,7 +22,9 @@ class CPU:
             0b00000001: self.HLT, 
             0b10000010: self.LDI, 
             0b01000111: self.PRN,
-            0b10100010: self.MUL, 
+            0b10100010: self.MUL,
+            0b01000101: self.PUSH,
+
         }
 
     # Function to call the Branch Table
@@ -40,6 +43,18 @@ class CPU:
     def MUL(self, reg_a, reg_b):
         self.alu('MUL', reg_a, reg_b)
 
+    def PUSH(self, reg_num, value):
+        # decrement SP
+        self.register[SP] -= 1
+        # get the value we want to store from the register (e.g. in stack.ls8
+        # earlier LDI operations would have saved a value to R0 and R1 respectively)
+        # now we're taking that value and pushing to stack
+        value = self.register[reg_num]
+        # figure out where to store it
+        new_stack_top = self.register[SP]
+        # store the value into RAM at the new top of the stack
+        self.ram[reg_num] =  
+
     def ram_read(self, address):
         return self.ram[address]
 
@@ -51,6 +66,9 @@ class CPU:
         
         filename = sys.argv[1]
 
+        # address init at 0 as the memory map in the spec allocates from 0x00
+        # (i.e. 0th byte of RAM) upwards for program entries, and from 0xF4
+        # (i.e. 244th byte of RAM) downwards for the Stack
         address = 0
 
         with open(filename) as f:
@@ -99,6 +117,10 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
+        # spec outlines R7 is reserved as the Stack Pointer (SP),
+        # assign that to 245th byte in RAM as per spec
+        self.register[SP] = 0b11110100 # 245th (or 0xF4) byte in RAM
+         
         self.pc = 0
         # running = True
         while self.running:
@@ -133,6 +155,7 @@ class CPU:
             if num_operands == 0:
                 self.call_bt(ir)
 
+            # increment self.pc
             move_pc = num_operands + 1
             self.pc += move_pc
 
