@@ -24,6 +24,7 @@ class CPU:
             0b01000111: self.PRN,
             0b10100010: self.MUL,
             0b01000101: self.PUSH,
+            0b01000110: self.POP,
 
         }
 
@@ -45,15 +46,27 @@ class CPU:
 
     def PUSH(self, reg_num, value):
         # decrement SP
-        self.register[SP] -= 1
+        self.register[self.SP] -= 1
         # get the value we want to store from the register (e.g. in stack.ls8
         # earlier LDI operations would have saved a value to R0 and R1 respectively)
         # now we're taking that value and pushing to stack
-        value = self.register[reg_num]
+        val = self.register[reg_num]
         # figure out where to store it
-        new_stack_top = self.register[SP]
+        new_stack_top = self.register[self.SP]
         # store the value into RAM at the new top of the stack
-        self.ram[reg_num] =  
+        self.ram[new_stack_top] = val
+
+    def POP(self, reg_num, value):
+        # copy the val from the address pointed to by SP to given register
+        # current stack top
+        cur_stack_top = self.register[self.SP]
+        # get the val at current stack top
+        val = self.ram[cur_stack_top]
+        # copy it to given register in the parameter
+        self.register[reg_num] = val
+
+        # increment SP
+        self.register[self.SP] += 1
 
     def ram_read(self, address):
         return self.ram[address]
@@ -118,12 +131,14 @@ class CPU:
     def run(self):
         """Run the CPU."""
         # spec outlines R7 is reserved as the Stack Pointer (SP),
-        # assign that to 245th byte in RAM as per spec
-        self.register[SP] = 0b11110100 # 245th (or 0xF4) byte in RAM
+        # assign that to 244th byte in RAM as per spec
+        self.register[self.SP] = 0b11110100 # 244th (or 0xF4) byte in RAM
          
         self.pc = 0
         # running = True
         while self.running:
+            # IR (Internal Register) set to value at ram[self.pc] which is a binary
+            # instruction read in from the file
             # ir = self.ram[self.pc]
             ir = self.ram_read(self.pc)
             operand_a = self.ram_read(self.pc+1) 
@@ -158,6 +173,9 @@ class CPU:
             # increment self.pc
             move_pc = num_operands + 1
             self.pc += move_pc
+
+            # Below is the IF-ELSE block that was replaced by the
+            # Branch Table above
 
             # if ir == LDI:
             #     reg_num = operand_a # self.ram[self.pc+1]
