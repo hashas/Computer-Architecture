@@ -25,6 +25,7 @@ class CPU:
             0b10100010: self.MUL,
             0b01000101: self.PUSH,
             0b01000110: self.POP,
+            0b01010000: self.CALL,
 
         }
 
@@ -32,6 +33,8 @@ class CPU:
     def call_bt(self, n, x=None, y=None):
         self.branch_table[n](x, y)
 
+    # All following functions take 2 params but most use only 1,
+    # this is because call_bt() returns a fn call with 2 params
     def LDI(self, reg_num, value):
         self.register[reg_num] = value
 
@@ -67,6 +70,11 @@ class CPU:
 
         # increment SP
         self.register[self.SP] += 1
+
+    # CALL function
+    def CALL(self, reg_num, value):
+        # address of the instruction directly after CALL is pushed on stack
+        self.register[self.SP] = reg_num
 
     def ram_read(self, address):
         return self.ram[address]
@@ -157,6 +165,9 @@ class CPU:
             num_operands = (ir & 0b11000000) >> 6
             # 1 if this is an ALU operation
             if_alu = (ir & 0b00100000) >> 5
+
+            # 1 if this instruction sets the PC
+            if_setPC = (ir & 0b00010000) >> 4 
 
             if num_operands == 2 and if_alu == 0:
                 self.call_bt(ir, operand_a, operand_b)
