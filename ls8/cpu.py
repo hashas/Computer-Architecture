@@ -2,10 +2,11 @@
 
 import sys
 
-HLT = 0b00000001
-LDI = 0b10000010
-PRN = 0b01000111
-MUL = 0b10100010
+# used these variables prior to implementing Branch Table
+#HLT = 0b00000001
+#LDI = 0b10000010
+#PRN = 0b01000111
+#MUL = 0b10100010
 
 class CPU:
     """Main CPU class."""
@@ -23,10 +24,11 @@ class CPU:
             0b10000010: self.LDI, 
             0b01000111: self.PRN,
             0b10100010: self.MUL,
+            0b10100000: self.ADD,
             0b01000101: self.PUSH,
             0b01000110: self.POP,
             0b01010000: self.CALL,
-
+            0b00010001: self.RET,
         }
 
     # Function to call the Branch Table
@@ -35,6 +37,8 @@ class CPU:
 
     # All following functions take 2 params but most use only 1,
     # this is because call_bt() returns a fn call with 2 params
+    # so I had to pass 2 params so the fn would work even though
+    # in most cases 1 of the params was unused (not good practice)
     def LDI(self, reg_num, value):
         self.register[reg_num] = value
 
@@ -46,6 +50,9 @@ class CPU:
 
     def MUL(self, reg_a, reg_b):
         self.alu('MUL', reg_a, reg_b)
+
+    def ADD(self, reg_a, reg_b):
+        self.alu('ADD', reg_a, reg_b)
 
     def PUSH(self, reg_num, value):
         # decrement SP
@@ -72,9 +79,31 @@ class CPU:
         self.register[self.SP] += 1
 
     # CALL function
+    # 1. Push the return addr on the stack
+    # 2. Set the PC to the addr of the subroutine
     def CALL(self, reg_num, value):
-        # address of the instruction directly after CALL is pushed on stack
-        self.register[self.SP] = reg_num
+        # make a copy of the return address to come back to after fn call
+        return_addr = self.pc + 2
+
+        # decrement SP to new stack top
+        self.register[self.SP] -= 1
+        # push return_addr to new stack top in memory
+        self.ram[self.register[self.SP]] = return_addr
+
+        # call it by setting self.pc to the subroutine
+        self.pc = self.register[reg_num]
+
+    # RET function
+    # 1. Pop the return addr off the stack
+    # 2. Set the PC to the return addr popped off stack
+    def RET(self, reg_num, value):
+        # pop the return addr off the stack and set it to self.pc
+        # so we can resume where we left off
+        return_addr = self.register[self.SP]
+        self.pc = self.ram[return_addr]
+
+        # increment SP
+        self.register[self.SP] += 1
 
     def ram_read(self, address):
         return self.ram[address]
@@ -132,7 +161,7 @@ class CPU:
         ), end='')
 
         for i in range(8):
-            print(" %02X" % self.reg[i], end='')
+            print(" %02X" % self.register[i], end='')
 
         print()
 
@@ -151,39 +180,42 @@ class CPU:
             ir = self.ram_read(self.pc)
             operand_a = self.ram_read(self.pc+1) 
             operand_b = self.ram_read(self.pc+2)
-
+            
+            # testing:
             # print(ir)
             # print(operand_a)
             # print(operand_b)
 
+            # toggle below to run the provided test fn self.trac()
+            # self.trace()
+
             # Replace the IF-ELSE block with Branch Table
             if ir not in self.branch_table:
-                print("some kind of error")
+                print("instruction not in branch table")
 
             # AND Masks:
             # Identify the number of operands by isolating first 2 bits 
             num_operands = (ir & 0b11000000) >> 6
-            # 1 if this is an ALU operation
-            if_alu = (ir & 0b00100000) >> 5
-
-            # 1 if this instruction sets the PC
-            if_setPC = (ir & 0b00010000) >> 4 
-
-            if num_operands == 2 and if_alu == 0:
-                self.call_bt(ir, operand_a, operand_b)
             
-            if num_operands == 2 and if_alu == 1:
-                self.alu("MUL", operand_a, operand_b)
+            # I didn't need the following AND Masks:
+            ## 1 if this is an ALU operation
+            # if_alu = (ir & 0b00100000) >> 5
+            ## 1 if this instruction sets the PC
+            # if_setPC = (ir & 0b00010000) >> 4 
+
+            if num_operands == 2: # and if_alu == 0:
+                self.call_bt(ir, operand_a, operand_b) 
             
-            if num_operands == 1:
+            if num_operands == 1: # and if_setPC == 0:
                 self.call_bt(ir, operand_a)
 
             if num_operands == 0:
                 self.call_bt(ir)
 
-            # increment self.pc
-            move_pc = num_operands + 1
-            self.pc += move_pc
+            # increment self.pc only if the 4th bit of 1st byte is 0 
+            if (ir & 0b00010000) >> 4 == 0:
+                move_pc = num_operands + 1
+                self.pc += move_pc
 
             # Below is the IF-ELSE block that was replaced by the
             # Branch Table above
